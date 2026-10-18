@@ -18,7 +18,9 @@ class RobotCuadricula {
 
   /** La dirección que queda tras girar noventa grados hacia el sentido dado. */
   def girar(d: Direccion, s: Sentido): Direccion = {
-    (d,s) match{
+
+    (d, s) match{
+
       case (Norte, Izquierda) => Oeste
       case (Norte, Derecha) => Este
       case (Este, Izquierda) => Norte
@@ -27,14 +29,39 @@ class RobotCuadricula {
       case (Sur, Derecha) => Oeste
       case (Oeste, Izquierda) => Sur
       case (Oeste, Derecha) => Norte
-
     }
   }
 
   // Punto 2 -------------------------------------------------------------------
 
   /** El estado que resulta de aplicarle la orden al estado dado. */
-  def ejecutar(e: Estado, o: Orden): Estado = ???
+  def ejecutar(e: Estado, o: Orden): Estado = {
+
+    def runSecuencia(e: Estado, l: List[Orden]): Estado = {
+      l match{
+        case Nil => e
+        case x :: Nil => ejecutar(e,x)
+        case x :: xs => runSecuencia(ejecutar(e,x),xs)
+      }
+    }
+
+    def runRepetir(e: Estado, o: Orden, n: Int): Estado = {
+      if (n == 0) e
+      else runRepetir(ejecutar(e,o),o,n-1)
+    }
+
+    (e, o) match{
+      case (Estado(x,y,dir),Avanzar(n)) if dir == Norte => Estado(x,y+n,dir)
+      case (Estado(x,y,dir),Avanzar(n)) if dir == Sur => Estado(x,y-n,dir)
+      case (Estado(x,y,dir),Avanzar(n)) if dir == Este => Estado(x+n,y,dir)
+      case (Estado(x,y,dir),Avanzar(n)) if dir == Oeste => Estado(x-n,y,dir)
+      case (Estado(x,y,dir),Girar(sentido)) => Estado(x,y,girar(dir,sentido))
+      case (e,Secuencia(List())) => e
+      case (e,Secuencia(lista)) => runSecuencia(e,lista)
+      case (e,Repetir(n,_)) if n < 1 => e
+      case (e,Repetir(n,orden)) => runRepetir(e,orden,n)
+    }
+  }
 
   // Punto 3 -------------------------------------------------------------------
 
