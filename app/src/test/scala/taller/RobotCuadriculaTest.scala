@@ -196,4 +196,38 @@ class RobotCuadriculaTest extends AnyFunSuite {
   test("simplificar: el anidamiento interior también se reduce") {
     assert(simplificar(Repetir(3, Repetir(1, Avanzar(2)))) == Repetir(3, Avanzar(2)))
   }
+
+  // Pruebas adicionales - Punto 4 ---------------------------------------------
+
+  test("componer: dos giros a la izquierda orienta al robot en sentido opuesto") {
+    val mediaVuelta = componer(Girar(Izquierda), Girar(Izquierda))
+    assert(mediaVuelta == Secuencia(List(Girar(Izquierda), Girar(Izquierda))))
+    assert(ejecutar(Estado(0, 0, Norte), mediaVuelta) == Estado(0, 0, Sur))
+  }
+
+  test("rutina: trazo rectangular con giros hacia la izquierda") {
+    val dosPasos = rutina(3)(Izquierda)(2)
+    assert(dosPasos == Repetir(2, Secuencia(List(Avanzar(3), Girar(Izquierda)))))
+  }
+
+  test("rutina con cero repeticiones deja al robot inmóvil en su casilla") {
+    val rutinaCero = rutina(5)(Derecha)(0)
+    assert(rutinaCero == Repetir(0, Secuencia(List(Avanzar(5), Girar(Derecha)))))
+    assert(ejecutar(Estado(2, 4, Este), rutinaCero) == Estado(2, 4, Este))
+  }
+
+  test("aplicarA rota en simultáneo varios robots en cuadrantes distintos") {
+    val flota = List(Estado(0, 0, Norte), Estado(3, 3, Este), Estado(-2, 5, Sur))
+    val esperados = List(Estado(0, 0, Oeste), Estado(3, 3, Norte), Estado(-2, 5, Este))
+    assert(aplicarA(flota, Girar(Izquierda)) == esperados)
+  }
+
+  test("transformar genera una ruta espejo invirtiendo el sentido de los giros") {
+    val ordenOriginal = Secuencia(List(Avanzar(4), Girar(Derecha)))
+    val reflejada = transformar(ordenOriginal, {
+      case Girar(Derecha) => Girar(Izquierda)
+      case otra           => otra
+    })
+    assert(reflejada == Secuencia(List(Avanzar(4), Girar(Izquierda))))
+  }
 }
