@@ -230,4 +230,39 @@ class RobotCuadriculaTest extends AnyFunSuite {
     })
     assert(reflejada == Secuencia(List(Avanzar(4), Girar(Izquierda))))
   }
+
+  // Pruebas adicionales - Punto 5 ---------------------------------------------
+
+  test("simplificar: fusiona múltiples avances consecutivos en una única orden") {
+    val variosAvances = Secuencia(List(Avanzar(1), Avanzar(2), Avanzar(3)))
+    assert(simplificar(variosAvances) == Avanzar(6))
+  }
+
+  test("simplificar: avanzar cero pasos de forma directa se convierte en secuencia vacía") {
+    assert(simplificar(Avanzar(0)) == Secuencia(Nil))
+  }
+
+  test("simplificar: cancela avance y retroceso contiguos preservando el resto de la trayectoria") {
+    val orden = Secuencia(List(Avanzar(5), Girar(Izquierda), Avanzar(3), Avanzar(-3)))
+    assert(simplificar(orden) == Secuencia(List(Avanzar(5), Girar(Izquierda))))
+  }
+
+  test("simplificar: colapsa en cascada repeticiones unitarias con secuencias redundantes") {
+    val cascada = Repetir(1, Secuencia(List(Avanzar(4), Avanzar(0))))
+    assert(simplificar(cascada) == Avanzar(4))
+  }
+
+  test("simplificar: orden compuesta optimizada produce la misma posición final") {
+    val estadoInicial = Estado(-3, 7, Oeste)
+    val rutaCompleja = Secuencia(List(
+      Repetir(1, Avanzar(2)),
+      Avanzar(3),
+      Girar(Derecha),
+      Repetir(0, Girar(Izquierda)),
+      Avanzar(4),
+      Avanzar(-1)
+    ))
+    val optimizada = simplificar(rutaCompleja)
+    assert(ejecutar(estadoInicial, rutaCompleja) == ejecutar(estadoInicial, optimizada))
+  }
 }
