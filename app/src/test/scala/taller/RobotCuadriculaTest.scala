@@ -215,4 +215,73 @@ class RobotCuadriculaTest extends AnyFunSuite {
   test("simplificar: el anidamiento interior también se reduce") {
     assert(simplificar(Repetir(3, Repetir(1, Avanzar(2)))) == Repetir(3, Avanzar(2)))
   }
+
+  // Pruebas adicionales - Punto 4 ---------------------------------------------
+
+  test("componer: dos giros a la izquierda orienta al robot en sentido opuesto") {
+    val mediaVuelta = componer(Girar(Izquierda), Girar(Izquierda))
+    assert(mediaVuelta == Secuencia(List(Girar(Izquierda), Girar(Izquierda))))
+    assert(ejecutar(Estado(0, 0, Norte), mediaVuelta) == Estado(0, 0, Sur))
+  }
+
+  test("rutina: trazo rectangular con giros hacia la izquierda") {
+    val dosPasos = rutina(3)(Izquierda)(2)
+    assert(dosPasos == Repetir(2, Secuencia(List(Avanzar(3), Girar(Izquierda)))))
+  }
+
+  test("rutina con cero repeticiones deja al robot inmóvil en su casilla") {
+    val rutinaCero = rutina(5)(Derecha)(0)
+    assert(rutinaCero == Repetir(0, Secuencia(List(Avanzar(5), Girar(Derecha)))))
+    assert(ejecutar(Estado(2, 4, Este), rutinaCero) == Estado(2, 4, Este))
+  }
+
+  test("aplicarA rota en simultáneo varios robots en cuadrantes distintos") {
+    val flota = List(Estado(0, 0, Norte), Estado(3, 3, Este), Estado(-2, 5, Sur))
+    val esperados = List(Estado(0, 0, Oeste), Estado(3, 3, Norte), Estado(-2, 5, Este))
+    assert(aplicarA(flota, Girar(Izquierda)) == esperados)
+  }
+
+  test("transformar genera una ruta espejo invirtiendo el sentido de los giros") {
+    val ordenOriginal = Secuencia(List(Avanzar(4), Girar(Derecha)))
+    val reflejada = transformar(ordenOriginal, {
+      case Girar(Derecha) => Girar(Izquierda)
+      case otra           => otra
+    })
+    assert(reflejada == Secuencia(List(Avanzar(4), Girar(Izquierda))))
+  }
+
+  // Pruebas adicionales - Punto 5 ---------------------------------------------
+
+  test("simplificar: fusiona múltiples avances consecutivos en una única orden") {
+    val variosAvances = Secuencia(List(Avanzar(1), Avanzar(2), Avanzar(3)))
+    assert(simplificar(variosAvances) == Avanzar(6))
+  }
+
+  test("simplificar: avanzar cero pasos de forma directa se convierte en secuencia vacía") {
+    assert(simplificar(Avanzar(0)) == Secuencia(Nil))
+  }
+
+  test("simplificar: cancela avance y retroceso contiguos preservando el resto de la trayectoria") {
+    val orden = Secuencia(List(Avanzar(5), Girar(Izquierda), Avanzar(3), Avanzar(-3)))
+    assert(simplificar(orden) == Secuencia(List(Avanzar(5), Girar(Izquierda))))
+  }
+
+  test("simplificar: colapsa en cascada repeticiones unitarias con secuencias redundantes") {
+    val cascada = Repetir(1, Secuencia(List(Avanzar(4), Avanzar(0))))
+    assert(simplificar(cascada) == Avanzar(4))
+  }
+
+  test("simplificar: orden compuesta optimizada produce la misma posición final") {
+    val estadoInicial = Estado(-3, 7, Oeste)
+    val rutaCompleja = Secuencia(List(
+      Repetir(1, Avanzar(2)),
+      Avanzar(3),
+      Girar(Derecha),
+      Repetir(0, Girar(Izquierda)),
+      Avanzar(4),
+      Avanzar(-1)
+    ))
+    val optimizada = simplificar(rutaCompleja)
+    assert(ejecutar(estadoInicial, rutaCompleja) == ejecutar(estadoInicial, optimizada))
+  }
 }

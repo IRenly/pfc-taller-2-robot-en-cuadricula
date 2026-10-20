@@ -1,61 +1,56 @@
-# Ejemplo de informe de corrección
+# Informe de Corrección — Puntos 4 y 5
 
-Fundamentos de Programación Funcional y Concurrente.
-Documento realizado por el docente Juan Francisco Díaz.
+Fundamentos de Programación Funcional y Concurrente  
+Universidad del Valle
 
-## 1. Argumentar la corrección de programas recursivos
+---
 
-Sea $f : A \to B$ una función, y $A$ un conjunto definido recursivamente
-(recordar la definición de Matemáticas Discretas I), como por ejemplo los
-naturales o las listas.
+## Punto 4: Rutinas con Funciones de Alto Orden
 
-Sea $P_f$ un programa recursivo (lineal o en árbol) desarrollado en Scala (o en
-cualquier lenguaje de programación) hecho para calcular $f$:
+### 1. Corrección de `aplicarA` (Inducción Estructural sobre Listas)
+Demostramos que `aplicarA(estados, o)` ejecuta la orden $o$ en cada robot preservando el orden de la lista:
 
-```scala
-def Pf(a: A): B = { // Pf recibe a de tipo A, y devuelve f(a) de tipo B
-  ...
-}
-```
+- **Caso Base (`estados = Nil`):**  
+  `aplicarA(Nil, o)` retorna `Nil`. Una lista vacía produce una lista vacía. Se cumple directamente.
+- **Hipótesis de Inducción (HI):**  
+  Suponemos que `aplicarA(xs, o)` ejecuta correctamente $o$ sobre la cola `xs`.
+- **Paso Inductivo (`estados = x :: xs`):**  
+  La función calcula `ejecutar(x, o) :: aplicarA(xs, o)`. Por la HI, la cola `xs` ya fue transformada; al anteponerle el estado procesado del primer robot `x`, la lista completa queda transformada en el orden correcto.
 
-¿Cómo argumentar que $P_f(a)$ siempre devuelve $f(a)$ como respuesta? Es decir,
-¿cómo argumentar que $P_f$ es correcto con respecto a su especificación?
+### 2. Corrección de `transformar` (Inducción Estructural sobre `Orden`)
+Demostramos que `transformar(o, f)` aplica $f$ a las órdenes básicas respetando la estructura de las compuestas:
 
-La respuesta es sencilla: demostrando el siguiente teorema.
+- **Casos Base (`Avanzar` y `Girar`):**  
+  Al ser órdenes básicas, la función les aplica directamente $f$: retorna $f(o)$.
+- **Hipótesis de Inducción (HI):**  
+  Suponemos que `transformar` procesa correctamente las subórdenes internas de cualquier compuesta.
+- **Paso Inductivo:**  
+  - Para `Repetir(veces, sub)`: conserva el número de repeticiones y transforma `sub` por HI.
+  - Para `Secuencia(lista)`: transforma cada elemento de la lista por HI y reconstruye la `Secuencia`.
 
-```math
-\forall a \in A : P_f(a) == f(a)
-```
+---
 
-Cuando uno tiene que demostrar que algo se cumple para todos los elementos de
-un conjunto definido recursivamente, es natural usar inducción estructural. En
-términos prácticos, esto significa demostrar que:
+## Punto 5: Teorema de Corrección de `simplificar`
 
-- Para cada valor básico $a$ de $A$, se tiene que $P_f(a) == f(a)$.
-- Para cada valor $a \in A$ construido recursivamente a partir de otro(s)
-  valor(es) $a' \in A$, se tiene que
-  $P_f(a') == f(a') \rightarrow P_f(a) == f(a)$. (Esta es la hipótesis de
-  inducción).
+**Teorema:** Para todo estado $e$ y toda orden $o$, ejecutar la orden original produce el mismo estado final que ejecutar la orden simplificada:
+$$\text{ejecutar}(e, o) = \text{ejecutar}(e, \text{simplificar}(o))$$
 
-### Ejemplo: factorial recursivo
+### Demostración regla por regla:
 
-Sea $f : \mathbb{N} \to \mathbb{N}$ la función que calcula el factorial de un
-número natural, es decir, $f(n) = n!$. Y sea $P_f$ el siguiente programa en
-Scala:
+1. **Regla 1 (`Avanzar(0)` y `Repetir(0, _)` $\to$ `Secuencia(Nil)`):**  
+   Avanzar $0$ pasos deja las coordenadas $(x, y)$ intactas ($x \pm 0 = x, y \pm 0 = y$). Repetir $0$ veces no realiza acciones. Ambas dejan el estado sin alterar ($e$), exactamente igual que `Secuencia(Nil)`.
 
-```scala
-def Pf(n: Int): Int = { // Pf recibe n de tipo Int, y devuelve n! de tipo Int
-  if (n == 0) 1 else n * Pf(n - 1)
-}
-```
+2. **Regla 2 (Dos `Avanzar` seguidos se juntan):**  
+   Avanzar $n$ pasos y luego $m$ pasos en la misma dirección suma algebraicamente los desplazamientos: $y + n + m = y + (n + m)$. Por asociatividad de la suma, equivale a `Avanzar(n + m)`. Si $n + m = 0$, el desplazamiento neto es cero.
 
-Vamos a demostrar que $\forall n \in \mathbb{N} : P_f(n) == n!$
+3. **Regla 3 (`Repetir(1, o)` $\to$ `o`):**  
+   Repetir una vez un bloque de órdenes equivale a ejecutar dicho bloque una única vez.
 
-**Caso base:** $n = 0$
+4. **Regla 4 (`Secuencia(List(o))` $\to$ `o`):**  
+   Una secuencia de un único elemento ejecuta exclusivamente esa orden; desenvolverla no altera el resultado.
 
-```math
-P_f(0) \rightarrow \text{if } (0 == 0)\ 1 \text{ else } 0 \ast P_f(-1) \rightarrow 1
-```
+5. **Regla 5 (Eliminar órdenes nulas de secuencias):**  
+   Como las órdenes nulas actúan como la función identidad sobre el estado ($\text{ejecutar}(e, \text{noOp}) = e$), quitarlas de una secuencia no altera el estado final.
 
 Por otro lado, $f(0) = 0! = 1$. Entonces $P_f(0) == f(0)$.
 
