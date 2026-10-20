@@ -1,131 +1,55 @@
-# Algoritmo Factorial con Recursión de Cola
+# Informe de Proceso — Puntos 4 y 5
 
-## Definición del Algoritmo
-
-```Scala
-def factorial(n: Int): BigInt = {
-  @annotation.tailrec
-  def loop(x: Int, acumulador: BigInt): BigInt = {
-    if (x <= 1) acumulador
-    else loop(x - 1, acumulador * x)
-  }
-  loop(n, 1)
-}
-```
-
-* La función `factorial` calcula el factorial de un número `n` utilizando **recursión de cola**.
-* La función interna `loop` es la que hace la recursión:
-
-  * Recibe dos parámetros:
-
-    * `x`: el valor actual decreciente hasta llegar a 1.
-    * `acumulador`: donde se guarda el resultado parcial en cada paso.
-* El decorador `@annotation.tailrec` obliga a que la función sea optimizada como recursión de cola, es decir, **no se acumulan llamados en la pila**.
-
-## Explicación paso a paso
-
-### Caso base
-
-```Scala
-if (x <= 1) acumulador
-```
-
-Cuando `x` llega a `1`, la función retorna directamente el valor acumulado, evitando más llamadas.
-
-### Caso recursivo
-
-```Scala
-loop(x - 1, acumulador * x)
-```
-
-En cada llamada:
-
-* Se reduce el valor de `x` en 1.
-* Se multiplica el acumulador por `x` y se pasa a la siguiente iteración.
-* Como es recursión de cola, la llamada recursiva es la **última instrucción** en ejecutarse, lo que permite a Scala optimizar la pila.
+Fundamentos de Programación Funcional y Concurrente  
+Universidad del Valle
 
 ---
 
-## Llamados de pila en recursión de cola
+## Punto 4: Rutinas con Funciones de Alto Orden
 
-Ejemplo:
+### Traza de `transformar`
+Tomamos `cuadrado = Repetir(4, Secuencia(List(Avanzar(1), Girar(Derecha))))` y la función $f$ que duplica los avances:
 
-```Scala
-factorial(5)
-```
-
-### Paso 1: Llamada inicial
-
-```Scala
-loop(5, 1)
-```
-
-### Paso 2: Primera iteración
-
-```Scala
-loop(4, 5)   // acumulador = 1 * 5
-```
-
-### Paso 3: Segunda iteración
-
-```Scala
-loop(3, 20)  // acumulador = 5 * 4
-```
-
-### Paso 4: Tercera iteración
-
-```Scala
-loop(2, 60)  // acumulador = 20 * 3
-```
-
-### Paso 5: Cuarta iteración
-
-```Scala
-loop(1, 120) // acumulador = 60 * 2
-```
-
-### Paso 6: Caso base
-
-```Scala
-return 120
-```
-
----
-
-## Diferencia con recursión normal
-
-* En **recursión normal** cada llamada queda en la pila esperando a que termine la siguiente, lo que puede causar desbordamiento si `n` es muy grande.
-* En **recursión de cola**, el compilador transforma el proceso en un **bucle optimizado**, por lo que no se guarda cada llamada en la pila y el algoritmo puede ejecutarse para valores muy grandes sin problema.
-
----
-
-## Ejemplo de uso
-
-```Scala
-val resultado = factorial(5)
-println(resultado)  // 120
-```
-
-El resultado de `factorial(5)` es `120`.
-
-
-## Diagrama de llamados de pila con recursión de cola
+1. **Llamada:** `transformar(cuadrado, f)`
+2. **Paso 1:** Al ser `Repetir(4, _)`, conserva el bucle y desciende recursivamente a la suborden.
+3. **Paso 2:** Al ser `Secuencia(_)`, procesa su lista elemento por elemento:
+   - `Avanzar(1)` (básica) $\implies$ aplica $f \implies \text{Avanzar}(2)$.
+   - `Girar(Derecha)` (básica) $\implies$ aplica $f \implies \text{Girar(Derecha)}$.
+4. **Resultado final:** `Repetir(4, Secuencia(List(Avanzar(2), Girar(Derecha))))`.
 
 ```mermaid
-sequenceDiagram
-    participant Main as factorial(5)
-    participant L1 as loop(5, 1)
-    participant L2 as loop(4, 5)
-    participant L3 as loop(3, 20)
-    participant L4 as loop(2, 60)
-    participant L5 as loop(1, 120)
-
-    Main->>L1: llamada inicial
-    L1->>L2: tail call con (4, 5)
-    L2->>L3: tail call con (3, 20)
-    L3->>L4: tail call con (2, 60)
-    L4->>L5: tail call con (1, 120)
-    L5-->>Main: return 120
+flowchart TD
+    A["cuadrado: Repetir(4, Secuencia)"] --> B["Secuencia([Avanzar(1), Girar(Derecha)])"]
+    B --> C["f(Avanzar(1)) -> Avanzar(2)"]
+    B --> D["f(Girar(Derecha)) -> Girar(Derecha)"]
+    C --> E["Resultado: Repetir(4, Secuencia([Avanzar(2), Girar(Derecha)]))"]
+    D --> E
 ```
 
+---
 
+## Punto 5: `simplificar` en Múltiples Pasadas
+
+Consideremos la siguiente orden que requiere varias pasadas de optimización:
+$$\text{Secuencia}(\text{List}(\text{Avanzar}(2), \text{Avanzar}(3), \text{Avanzar}(-5), \text{Girar}(\text{Derecha})))$$
+
+### Traza paso a paso:
+
+- **Pasada 1 (Fusión de avances contiguos):**
+  - Detecta `Avanzar(2)` y `Avanzar(3)` consecutivos $\implies$ los suma en `Avanzar(5)`.
+  - Queda: `Secuencia(List(Avanzar(5), Avanzar(-5), Girar(Derecha)))`.
+
+- **Pasada 2 (Cancelación y desenvolvimiento):**
+  - Detecta `Avanzar(5)` y `Avanzar(-5)` $\implies$ $5 + (-5) = 0$, se cancelan y desaparecen.
+  - Queda: `Secuencia(List(Girar(Derecha)))`.
+  - Por regla de elemento único, la secuencia se desenvuelve en: `Girar(Derecha)`.
+
+- **Pasada 3 (Verificación de punto fijo):**
+  - `Girar(Derecha)` no admite más reducciones $\implies$ el resultado no cambia y termina el proceso.
+
+```mermaid
+flowchart TD
+    A["Secuencia(Avanzar(2), Avanzar(3), Avanzar(-5), Girar(Derecha))"] -->|Pasada 1: Suma 2 + 3| B["Secuencia(Avanzar(5), Avanzar(-5), Girar(Derecha))"]
+    B -->|Pasada 2: Cancela 5 - 5 = 0 y desenvuelve| C["Girar(Derecha)"]
+    C -->|Pasada 3: Punto fijo| D["Resultado Final: Girar(Derecha)"]
+```
