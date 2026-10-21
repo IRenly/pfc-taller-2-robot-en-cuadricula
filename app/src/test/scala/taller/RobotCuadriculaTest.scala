@@ -83,6 +83,29 @@ class RobotCuadriculaTest extends AnyFunSuite {
     assert(ejecutar(Estado(5, 5, Oeste), Avanzar(2)) == Estado(3, 5, Oeste))
   }
 
+  // Punto 2 > Pruebas Adicionales
+
+  test("ejecutar: Avance negativo al oeste aumenta x"){
+    assert(ejecutar(Estado(-2, 5, Oeste), Avanzar(-3)) == Estado(1,5,Oeste))
+  }
+
+  test("ejecutar: Rectangulo vuelve al punto de partida"){
+    val rectangulo = Repetir(2,Secuencia(List(Avanzar(2),Girar(Derecha),Avanzar(1),Girar(Derecha))))
+    assert(ejecutar(inicial,rectangulo) == inicial)
+  }
+
+  test("ejecutar: Secuencia de Repetir(Giro, Avance, Giro, Avance) y termina con Avance(2), Giro"){
+    assert(ejecutar(inicial,Secuencia( List(Repetir (3,Secuencia(List(Girar(Izquierda),Avanzar(1),Girar(Derecha),Avanzar(1))) ),Avanzar(2), Girar(Derecha)) )) == Estado(-3,5,Este))
+  }
+
+  test("ejecutar: Secuencia de Avance, Cuadrado y Avance"){
+    assert(ejecutar(inicial, Secuencia(List(Avanzar(2),cuadrado,Avanzar(2)))) == Estado(0,4,Norte))
+  }
+
+  test("ejecutar: Repetir secuencia que tiene repeticion"){
+    assert(ejecutar(Estado(2,2,Norte), Repetir(2, Secuencia(List(Repetir(3,Secuencia(List(Avanzar(1),Girar(Derecha)))),Avanzar(2))) )) == Estado(1,1,Sur))
+  }
+
   // Punto 3 -------------------------------------------------------------------
 
   test("cuantasBasicas: una orden básica cuenta uno") {
