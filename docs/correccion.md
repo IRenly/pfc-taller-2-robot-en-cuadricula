@@ -131,35 +131,93 @@ Concluimos por inducción que $\forall o \in \text{Orden} : \text{profundidad}(o
 
 ## Punto 4: Rutinas con Funciones de Alto Orden
 
-### 1. Corrección de `aplicarA` (Inducción Estructural sobre Listas)
-Demostramos que `aplicarA(estados, o)` ejecuta la orden $o$ en cada robot preservando el orden de la lista:
+### 1. Composición y Currificación (`componer` y `rutina`)
+- **`componer(o1, o2)`:** Combina dos órdenes asociándolas secuencialmente en `Secuencia(List(o1, o2))`. Por definición de `ejecutar`, la secuencia evalúa $o_1$ sobre el estado inicial y el estado resultante es inmediatamente procesado por $o_2$.
+- **`rutina(pasos)(giro)(veces)`:** Utiliza **currificación** (técnica de alto orden) dividiendo la recepción de parámetros en múltiples listas de argumentos:
+  $$\text{rutina} : \text{Int} \to \text{Sentido} \to \text{Int} \to \text{Orden}$$
+  Esto permite la aplicación parcial (fijar los pasos y el sentido de giro para generar una plantilla reutilizable de orden, completándola luego con el número de repeticiones). Retorna `Repetir(veces, Secuencia(List(Avanzar(pasos), Girar(giro))))`.
 
-- **Caso Base (`estados = Nil`):**  
-  `aplicarA(Nil, o)` retorna `Nil`. Una lista vacía produce una lista vacía. Se cumple directamente.
+### 2. Corrección de `aplicarA` (Inducción Estructural sobre Listas)
+
+**Especificación:** Sea $L = [e_1, e_2, \ldots, e_n]$ una lista de estados de robots y $o$ una orden. Queremos demostrar que:
+$$\text{aplicarA}(L, o) = [\text{ejecutar}(e_1, o), \text{ejecutar}(e_2, o), \ldots, \text{ejecutar}(e_n, o)]$$
+
+- **Caso Base ($L = \text{Nil}$):**  
+  Por definición de la función:
+  $$\text{aplicarA}(\text{Nil}, o) \to \text{Nil}$$
+  Una flota sin robots produce una lista vacía, cumpliendo directamente la especificación para $n = 0$.
+
 - **Hipótesis de Inducción (HI):**  
-  Suponemos que `aplicarA(xs, o)` ejecuta correctamente $o$ sobre la cola `xs`.
-- **Paso Inductivo (`estados = x :: xs`):**  
-  La función calcula `ejecutar(x, o) :: aplicarA(xs, o)`. Por la HI, la cola `xs` ya fue transformada; al anteponerle el estado procesado del primer robot `x`, la lista completa queda transformada en el orden correcto.
+  Suponemos que para una lista de estados $xs$ de longitud $k$, $\text{aplicarA}(xs, o)$ aplica correctamente la orden $o$ a cada estado conservando su cardinalidad y orden posicional.
 
-### 2. Corrección de `transformar` (Inducción Estructural sobre `Orden`)
-Demostramos que `transformar(o, f)` aplica $f$ a las órdenes básicas respetando la estructura de las compuestas:
+- **Paso Inductivo ($L = x :: xs$):**  
+  Aplicando la definición recursiva del programa:
+  $$\text{aplicarA}(x :: xs, o) \to \text{ejecutar}(x, o) :: \text{aplicarA}(xs, o)$$
+  Por la HI, $\text{aplicarA}(xs, o)$ evalúa la cola $xs$ transformando cada uno de sus elementos. Al anteponer con `::` el estado resultante de transformar la cabeza $\text{ejecutar}(x, o)$, la lista resultante tiene longitud $k + 1$, preserva el orden estricto de los robots y aplica $o$ sobre cada uno de ellos.
 
-- **Casos Base (`Avanzar` y `Girar`):**  
-  Al ser órdenes básicas, la función les aplica directamente $f$: retorna $f(o)$.
+- **Terminación:**  
+  En cada paso recursivo se pasa la cola de la lista (`xs`), reduciendo la longitud de la entrada en 1. Como toda lista en Scala es de longitud finita, el algoritmo alcanza necesariamente el caso base `Nil` en exactamente $n$ pasos.
+
+### 3. Corrección de `transformar` (Inducción Estructural sobre `Orden`)
+
+**Especificación:** La función $\text{transformar}(o, f)$ es un homomorfismo sobre el tipo de datos algebraico inductivo `Orden`. Aplica una función transformadora $f : \text{Orden} \to \text{Orden}$ exclusivamente sobre las órdenes básicas (hojas del árbol sintáctico), conservando la estructura y parámetros de las órdenes compuestas (`Repetir` y `Secuencia`).
+
+- **Casos Base (Órdenes Básicas):**
+  - Para $\text{Avanzar}(n)$: al ser básica, el pattern matching aplica $f$ directamente retornando $f(\text{Avanzar}(n))$.
+  - Para $\text{Girar}(s)$: análogamente, se evalúa $f(\text{Girar}(s))$. En ambos casos base la propiedad se satisface de forma inmediata.
+
 - **Hipótesis de Inducción (HI):**  
-  Suponemos que `transformar` procesa correctamente las subórdenes internas de cualquier compuesta.
-- **Paso Inductivo:**  
-  - Para `Repetir(veces, sub)`: conserva el número de repeticiones y transforma `sub` por HI.
-  - Para `Secuencia(lista)`: transforma cada elemento de la lista por HI y reconstruye la `Secuencia`.
+  Para cualquier suborden $o'$ cuya profundidad o número de nodos sea menor que el de $o$, suponemos que $\text{transformar}(o', f)$ aplica correctamente $f$ a todas sus órdenes básicas internas respetando su jerarquía.
+
+- **Paso Inductivo (Órdenes Compuestas):**
+  - **Caso $\text{Repetir}(k, sub)$:**  
+    Por definición:
+    $$\text{transformar}(\text{Repetir}(k, sub), f) \to \text{Repetir}(k, \text{transformar}(sub, f))$$
+    El número de iteraciones $k$ se preserva y, por la HI, la suborden $sub$ queda transformada correctamente en su interior.
+  - **Caso $\text{Secuencia}(lista)$:**  
+    Por definición:
+    $$\text{transformar}(\text{Secuencia}(lista), f) \to \text{Secuencia}(\text{transformarLista}(lista))$$
+    La función auxiliar interna `transformarLista` aplica inducción estructural sobre listas:
+    $$\text{transformarLista}(x :: xs) \to \text{transformar}(x, f) :: \text{transformarLista}(xs)$$
+    Por la HI, cada orden $x$ de la secuencia es procesada por `transformar` y recombinada en el mismo orden temporal, conservando la lista completa dentro del constructor `Secuencia`.
+
+- **Terminación:**  
+  Cada llamada recursiva se realiza sobre subórdenes contenidas con menor número de constructores y menor profundidad. Dado que toda `Orden` es un árbol sintáctico finito, el proceso desciende hasta las hojas básicas y termina deterministamente.
 
 ---
 
 ## Punto 5: Teorema de Corrección de `simplificar`
 
-**Teorema:** $\forall e \in \text{Estado}, \forall o \in \text{Orden} : \text{ejecutar}(e, o) = \text{ejecutar}(e, \text{simplificar}(o))$
+**Teorema:** Para todo estado $e \in \text{Estado}$ y para toda orden $o \in \text{Orden}$, ejecutar la orden original produce exactamente el mismo estado final que ejecutar la orden simplificada:
+$$\text{ejecutar}(e, o) = \text{ejecutar}(e, \text{simplificar}(o))$$
 
-**Demostración:** Cada regla de simplificación preserva el estado final:
-- **Órdenes nulas:** `Avanzar(0)` y `Repetir(0, _)` no modifican posición ni dirección ($\text{ejecutar}(e, \text{noOp}) = e$).
-- **Fusión de avances:** Por asociatividad de la suma, desplazamientos consecutivos se reducen a $\text{Avanzar}(n + m)$. Si $n + m = 0$, se anulan.
-- **Desenvolvimiento:** `Repetir(1, o)` y `Secuencia(List(o))` ejecutan exactamente $o$ una sola vez.
-- **Punto fijo:** Al aplicar sucesivamente transformaciones que preservan el estado hasta que no haya más cambios, la orden resultante produce el mismo estado que la original.
+### 1. Estrategia de la demostración
+La función `simplificar` aplica pasadas de optimización sucesivas hasta alcanzar un **punto fijo** (es decir, una orden irreducible donde $\text{pasada}(o) = o$). 
+
+Por la transitividad de la igualdad, si cada regla de reducción local $o \to o'$ preserva la semántica del estado final ($\text{ejecutar}(e, o) = \text{ejecutar}(e, o')$), entonces cualquier secuencia finita de transformaciones preserva el resultado hasta alcanzar el punto fijo.
+
+### 2. Demostración por familias de reglas
+
+1. **Eliminación de órdenes neutras:**
+   - Para $\text{Avanzar}(0)$: por definición de `ejecutar`, avanzar $0$ pasos suma algebraicamente $0$ a las coordenadas actuales ($x \pm 0 = x, y \pm 0 = y$), manteniendo el estado inalterado:
+     $$\text{ejecutar}((x, y, d), \text{Avanzar}(0)) = (x, y, d)$$
+   - Para $\text{Repetir}(0, o)$: repetir cero veces no realiza ninguna acción y retorna el estado intacto $e$.
+   - Ambas órdenes actúan como la función identidad sobre el estado ($\text{ejecutar}(e, \text{noOp}) = e$). Por lo tanto, eliminarlas de una secuencia no altera el resultado acumulado del pliegue de ejecución.
+
+2. **Fusión y cancelación de avances consecutivos:**
+   - Cuando aparecen dos órdenes consecutivas $\text{Avanzar}(n)$ y $\text{Avanzar}(m)$ dentro de una secuencia, ambas se ejecutan en la misma orientación actual $d$. Por asociatividad de la suma en las coordenadas cartesianas:
+     $$(y + n) + m = y + (n + m)$$
+   - En consecuencia, ejecutar ambas órdenes en secuencia produce el mismo efecto que una única orden $\text{Avanzar}(n + m)$:
+     $$\text{ejecutar}(e, \text{Secuencia}(\text{List}(\text{Avanzar}(n), \text{Avanzar}(m)))) = \text{ejecutar}(e, \text{Avanzar}(n + m))$$
+   - En el caso particular donde $n + m = 0$ (avances opuestos que se cancelan), la orden resultante es $\text{Avanzar}(0)$, que se anula por la regla de órdenes neutras sin alterar la posición final.
+
+3. **Desenvolvimiento de estructuras unitarias:**
+   - $\text{Repetir}(1, o)$: ejecutar un ciclo de una sola iteración consiste exactamente en evaluar $o$ una vez sobre el estado actual, por lo que $\text{ejecutar}(e, \text{Repetir}(1, o)) = \text{ejecutar}(e, o)$.
+   - $\text{Secuencia}(\text{List}(o))$: una secuencia con un único elemento ejecuta el pliegue sobre una lista unitaria, lo cual evalúa directamente $\text{ejecutar}(e, o)$. Desenvolver la lista no modifica la trayectoria ni el estado final.
+
+4. **Preservación en estructuras compuestas:**
+   - Para $\text{Repetir}(k, o)$ y $\text{Secuencia}(ordenes)$, la simplificación desciende recursivamente a sus subórdenes. Por hipótesis de inducción estructural, si cada suborden interna simplificada preserva su semántica de ejecución individual, la composición secuencial o iterativa de las mismas produce el mismo estado global.
+
+### 3. Terminación y Convergencia
+Cada pasada de simplificación reduce la longitud de las listas en secuencias, elimina constructores redundantes o fusiona nodos contiguos. Como toda orden $o$ es un árbol sintáctico finito, la cantidad de reducciones posibles es estrictamente finita. El algoritmo converge de manera determinista hacia una orden canónica irreducible $o^*$, garantizando que:
+$$\text{ejecutar}(e, o) = \text{ejecutar}(e, o^*)$$
