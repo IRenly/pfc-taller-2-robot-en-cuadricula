@@ -100,7 +100,107 @@ Concluimos que:
 Por tanto, `girar` es correcta con respecto a su especificación.
 
 ---
+## Punto 2: `ejecutar`
 
+La función `ejecutar` recibe un estado `e` y una orden `o`, y devuelve el estado resultante de ejecutar dicha orden. Para las órdenes compuestas, utiliza las funciones auxiliares `runSecuencia` y `runRepetir`.
+
+---
+
+## 1. `runSecuencia` — Proceso iterativo sobre una lista de órdenes
+
+### Estado
+
+El estado del proceso es $s = (e,l)$, donde $e$ es el estado actual y $l$ es la lista de órdenes que faltan por ejecutar.
+
+### Estado inicial
+
+El estado inicial es $s_0 = (e_0,l_0)$, donde $e_0$ es el estado recibido inicialmente y $l_0$ es la lista original de órdenes.
+
+### Estado final
+
+El estado es final cuando la lista está vacía (`Nil`) o cuando queda una sola orden (`List(x)`).
+
+- Si $l = Nil$, la función devuelve el estado actual $e$.
+- Si $l = List(x)$, ejecuta la última orden y devuelve `ejecutar(e, x)`.
+
+### Invariante
+
+En todo momento se cumple que el estado actual corresponde al resultado de ejecutar, en orden, todas las órdenes que ya se han procesado de la lista original.
+
+### Demostración
+
+**1. Inicio.** Al comenzar, no se ha procesado ninguna orden, por lo que el estado sigue siendo $e_0$. El invariante se cumple.
+
+**2. Preservación.** Si quedan varias órdenes, la lista tiene la forma `x :: xs`. La función ejecuta `x` y continúa con `xs`, utilizando el estado resultante:
+
+$$
+\text{runSecuencia}(\text{ejecutar}(e,x),xs)
+$$
+
+Como se incorpora al estado el resultado de ejecutar la primera orden pendiente, se conserva el orden de ejecución y el invariante sigue cumpliéndose.
+
+**3. Estado final.** Si la lista está vacía, todas las órdenes ya fueron procesadas y se devuelve el estado actual. Si queda una sola orden, se ejecuta directamente. En ambos casos, el resultado corresponde a ejecutar la secuencia completa.
+
+**4. Terminación.** En cada llamada recursiva se elimina la primera orden de la lista. Como la lista es finita, se llega a `Nil` o a una lista de un solo elemento, donde la función termina.
+
+---
+
+## 2. `runRepetir` — Proceso iterativo con un contador
+
+### Estado
+
+El estado del proceso es $s = (e,n)$, donde $e$ es el estado actual y $n$ es el número de repeticiones que faltan. La orden `o` permanece fija durante el proceso.
+
+### Estado inicial
+
+El estado inicial es $s_0 = (e_0,n_0)$, donde $e_0$ es el estado inicial y $n_0$ es el número de repeticiones solicitado.
+
+### Estado final
+
+El estado es final cuando $n = 0$. En ese caso, la función devuelve el estado actual $e$.
+
+### Invariante
+
+En todo momento se cumple:
+
+$$
+n_0-n = \text{número de repeticiones completadas}
+$$
+
+El estado actual $e$ es el resultado de aplicar la orden `o` exactamente $n_0-n$ veces al estado inicial $e_0$.
+
+### Demostración
+
+**1. Inicio.** Al comenzar, $n=n_0$, por lo que $n_0-n=0$. Todavía no se ha ejecutado ninguna repetición y el estado es $e_0$. Por lo tanto, el invariante se cumple.
+
+**2. Preservación.** Si $n>0$, la función ejecuta la orden una vez y continúa con $n-1$:
+
+$$
+\text{runRepetir}(\text{ejecutar}(e,o),o,n-1)
+$$
+
+El número de repeticiones completadas aumenta en uno y el contador disminuye en uno. Por lo tanto, el invariante se conserva.
+
+**3. Estado final.** Cuando $n=0$, se cumple que $n_0-n=n_0$. Por el invariante, se han completado todas las repeticiones solicitadas. La función devuelve el estado final correcto.
+
+**4. Terminación.** Si $n_0>0$, el contador disminuye en una unidad en cada llamada hasta llegar a cero. Si $n_0<1$, la función `ejecutar` devuelve directamente el estado inicial para la orden `Repetir`, sin iniciar el proceso de repetición. Por lo tanto, la orden `Repetir` termina, suponiendo que las órdenes ejecutadas internamente también terminan.
+
+---
+
+## 3. Corrección de `ejecutar`
+
+La función contempla cuatro tipos de órdenes:
+
+- **`Avanzar(n)`:** modifica las coordenadas según la dirección actual.
+- **`Girar(sentido)`:** cambia la dirección utilizando la función `girar`.
+- **`Secuencia(lista)`:** ejecuta las órdenes de la lista en el orden establecido mediante `runSecuencia`.
+- **`Repetir(n, orden)`:** ejecuta la orden el número de veces indicado mediante `runRepetir`. Si $n<1$, devuelve el estado sin realizar repeticiones.
+
+Los casos de movimiento y giro producen directamente el estado correspondiente a la orden recibida. La corrección de las órdenes compuestas se justifica mediante las demostraciones de sus funciones auxiliares.
+
+Por lo tanto, suponiendo que `girar` funciona correctamente y que las órdenes ejecutadas internamente terminan, `ejecutar` devuelve el estado correspondiente a la ejecución de la orden recibida.
+
+---
 ## Punto 3: corrección de `cuantasBasicas` y `profundidad`
 
 Como `Orden` está definido por sus cuatro alternativas, la inducción es
