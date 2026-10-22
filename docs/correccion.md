@@ -3,6 +3,102 @@
 Fundamentos de Programación Funcional y Concurrente  
 Universidad del Valle
 
+## Punto 1: corrección de `girar`
+
+Como `Direccion` tiene cuatro alternativas (`Norte`, `Sur`, `Este`, `Oeste`) y `Sentido` tiene dos alternativas (`Izquierda`, `Derecha`), la corrección de `girar` se demuestra por análisis exhaustivo de casos. Se consideran las ocho combinaciones posibles entre una dirección y un sentido de giro.
+
+### 1.1 `girar`
+
+**Especificación.** Sea $G(d,s)$ la dirección que se obtiene al girar noventa grados desde la dirección $d$ en el sentido $s$:
+
+```math
+\begin{aligned}
+G(\text{Norte},\text{Izquierda}) &= \text{Oeste} \\
+G(\text{Norte},\text{Derecha}) &= \text{Este} \\
+G(\text{Este},\text{Izquierda}) &= \text{Norte} \\
+G(\text{Este},\text{Derecha}) &= \text{Sur} \\
+G(\text{Sur},\text{Izquierda}) &= \text{Este} \\
+G(\text{Sur},\text{Derecha}) &= \text{Oeste} \\
+G(\text{Oeste},\text{Izquierda}) &= \text{Sur} \\
+G(\text{Oeste},\text{Derecha}) &= \text{Norte}
+\end{aligned}
+```
+
+**Teorema.**
+
+```math
+\forall d \in \text{Direccion},\ \forall s \in \text{Sentido}:
+\text{girar}(d,s) = G(d,s)
+```
+
+**Demostración.** La función `girar` utiliza una expresión `match` que contempla las ocho combinaciones posibles. Se demuestra que el resultado de cada caso coincide con la especificación.
+
+**Caso 1: Norte.**
+
+```math
+\begin{aligned}
+\text{girar}(\text{Norte},\text{Izquierda})
+&\rightarrow \text{Oeste} = G(\text{Norte},\text{Izquierda})\\
+\text{girar}(\text{Norte},\text{Derecha})
+&\rightarrow \text{Este} = G(\text{Norte},\text{Derecha})
+\end{aligned}
+```
+
+**Caso 2: Este.**
+
+```math
+\begin{aligned}
+\text{girar}(\text{Este},\text{Izquierda})
+&\rightarrow \text{Norte} = G(\text{Este},\text{Izquierda})\\
+\text{girar}(\text{Este},\text{Derecha})
+&\rightarrow \text{Sur} = G(\text{Este},\text{Derecha})
+\end{aligned}
+```
+
+**Caso 3: Sur.**
+
+```math
+\begin{aligned}
+\text{girar}(\text{Sur},\text{Izquierda})
+&\rightarrow \text{Este} = G(\text{Sur},\text{Izquierda})\\
+\text{girar}(\text{Sur},\text{Derecha})
+&\rightarrow \text{Oeste} = G(\text{Sur},\text{Derecha})
+\end{aligned}
+```
+
+**Caso 4: Oeste.**
+
+```math
+\begin{aligned}
+\text{girar}(\text{Oeste},\text{Izquierda})
+&\rightarrow \text{Sur} = G(\text{Oeste},\text{Izquierda})\\
+\text{girar}(\text{Oeste},\text{Derecha})
+&\rightarrow \text{Norte} = G(\text{Oeste},\text{Derecha})
+\end{aligned}
+```
+
+En los ocho casos, el resultado del programa coincide con el valor definido por la especificación. Como no existen otras combinaciones de entrada, queda demostrado el teorema.
+
+**Verificación mediante pruebas.** Las pruebas unitarias comprueban los resultados de diferentes giros individuales y también propiedades que deben cumplirse al realizar varios giros consecutivos.
+
+- Cuatro giros hacia la derecha desde Norte devuelven Norte.
+- Un giro hacia la derecha seguido de uno hacia la izquierda recupera la dirección original.
+- Tres giros hacia la izquierda desde Norte producen Este.
+- Se comprueban otras combinaciones, como Sur hacia la derecha, Este hacia la izquierda y Oeste hacia la izquierda.
+
+Estas pruebas permiten comprobar que la implementación se comporta de acuerdo con las reglas de rotación establecidas.
+
+**Terminación.** La función no realiza llamadas recursivas. Como la expresión `match` selecciona directamente uno de los ocho casos posibles y devuelve una dirección, la ejecución termina después de evaluar el caso correspondiente.
+
+Concluimos que:
+
+```math
+\forall d \in \text{Direccion},\ \forall s \in \text{Sentido}:
+\text{girar}(d,s) = G(d,s)
+```
+
+Por tanto, `girar` es correcta con respecto a su especificación.
+
 ---
 
 ## Punto 3: corrección de `cuantasBasicas` y `profundidad`
